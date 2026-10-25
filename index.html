@@ -1,0 +1,513 @@
+
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#173d32">
+<title>Comandas del bar</title>
+<style>
+:root {
+  --green:#176b52; --dark:#173d32; --bg:#f3f5f4;
+  --line:#dce3df; --muted:#65736c; --red:#a52b25;
+}
+* { box-sizing:border-box }
+body { margin:0;font:16px/1.4 system-ui,Arial,sans-serif;background:var(--bg);color:#1d2923 }
+header { background:var(--dark);color:white;padding:16px;display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap }
+header h1 { font-size:1.35rem;margin:0 }
+header p { margin:3px 0 0;color:#d7e5de;font-size:.9rem }
+main { max-width:1250px;margin:auto;padding:16px }
+.panel { background:white;border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:16px;box-shadow:0 2px 8px #13291d08 }
+h2 { font-size:1.1rem;margin:0 0 12px }
+h3 { font-size:1rem;margin:12px 0 8px }
+label { display:block;font-weight:650;font-size:.9rem;margin:10px 0 5px }
+input,select,textarea { font:inherit;width:100%;padding:10px;border:1px solid #bdc9c2;border-radius:8px;background:white;color:inherit }
+textarea { min-height:70px;resize:vertical }
+.row { display:flex;gap:10px;align-items:center;flex-wrap:wrap }
+.row>* { flex:1 }
+button { font:inherit;border:0;border-radius:9px;padding:10px 12px;cursor:pointer;font-weight:650 }
+button:disabled { opacity:.45;cursor:not-allowed }
+.primary { background:var(--green);color:white }
+.secondary { background:#e8eeea;color:#20382d }
+.danger { background:var(--red);color:white }
+.small { padding:6px 9px;font-size:.88rem }
+.hidden { display:none!important }
+.muted { color:var(--muted);font-size:.9rem }
+.status { font-size:.85rem;padding:5px 9px;border-radius:20px;background:#e8eeea;display:inline-block }
+.status.good { background:#d9f3e3;color:#145d36 }
+.status.bad { background:#ffe0dd;color:#8c211a }
+.tables { display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px }
+.table-btn { background:#e7ece9;color:#25382f;min-height:65px;border:2px solid transparent }
+.table-btn.active { background:var(--green);color:white }
+.table-btn.occupied:not(.active) { background:#fff0ce;color:#69480b }
+.table-btn small { display:block;font-weight:500 }
+.columns { display:grid;grid-template-columns:1fr;gap:16px }
+.tabs { display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px }
+.tabs button.active { background:var(--dark);color:white }
+.menu { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px }
+.product { text-align:left;background:#f5f8f6;border:1px solid var(--line);min-height:68px }
+.product span { display:block;color:var(--green);font-size:.9rem;margin-top:5px }
+.person-block { border:1px solid var(--line);border-radius:10px;padding:12px;margin:12px 0 }
+.person-head { display:flex;align-items:center;justify-content:space-between;gap:8px }
+.order-item { padding:10px 0;border-bottom:1px solid #edf0ee }
+.itemline { display:flex;justify-content:space-between;gap:8px }
+.itemtools { display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:7px }
+.itemtools select { width:auto;max-width:150px;padding:6px;font-size:.85rem }
+.total { display:flex;justify-content:space-between;font-size:1.25rem;font-weight:800;padding:14px 0 }
+.actions { display:grid;gap:8px }
+.kitchen-card { border:1px solid var(--line);border-left:5px solid #e5a333;border-radius:10px;padding:12px;margin:10px 0 }
+.kitchen-card.done { border-left-color:var(--green);opacity:.75 }
+.kitchen-card h3 { margin:0 0 4px }
+.pill { font-size:.78rem;padding:3px 7px;border-radius:20px;background:#e9efeb }
+.login { max-width:440px;margin:8vh auto }
+hr { border:0;border-top:1px solid var(--line);margin:14px 0 }
+@media(min-width:760px) {
+  .tables { grid-template-columns:repeat(6,minmax(0,1fr)) }
+  .columns { grid-template-columns:minmax(0,1fr) minmax(0,1fr) }
+  .menu { grid-template-columns:repeat(3,minmax(0,1fr)) }
+}
+@media print {
+  header,.no-print,#loginPanel,#tablePanel,#menuPanel,.tabs { display:none!important }
+  body { background:white }
+  .panel { border:0;box-shadow:none }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>🍽️ Comandas del bar</h1>
+    <p>Mesas, cocina y cobros en tiempo real</p>
+  </div>
+  <div class="row" style="flex:0 1 auto">
+    <span id="connection" class="status">Conectando…</span>
+    <button id="logoutBtn" class="secondary hidden">Cerrar sesión</button>
+  </div>
+</header>
+
+<section id="loginPanel" class="panel login">
+  <h2>Acceso del personal</h2>
+  <p class="muted">Inicia sesión con una cuenta creada en Firebase.</p>
+  <label for="email">Correo</label>
+  <input id="email" type="email" autocomplete="username">
+  <label for="password">Contraseña</label>
+  <input id="password" type="password" autocomplete="current-password">
+  <button id="loginBtn" class="primary" style="width:100%;margin-top:14px">Entrar</button>
+  <p id="loginError" class="muted" role="alert"></p>
+</section>
+
+<main id="app" class="hidden">
+  <div class="tabs no-print">
+    <button class="secondary active" data-view="service">📋 Camareros</button>
+    <button class="secondary" data-view="kitchen">👨‍🍳 Panel de cocina</button>
+  </div>
+
+  <section id="serviceView">
+    <section id="tablePanel" class="panel">
+      <h2>1. Selecciona una mesa</h2>
+      <div id="tables" class="tables"></div>
+    </section>
+
+    <div class="columns">
+      <div>
+        <section class="panel">
+          <h2 id="tableTitle">Mesa 1</h2>
+          <div class="row">
+            <div>
+              <label for="people">Número de personas</label>
+              <input id="people" type="number" min="1" max="30" value="2">
+            </div>
+            <div>
+              <label for="waiter">Camarero/a</label>
+              <input id="waiter" placeholder="Nombre">
+            </div>
+          </div>
+          <label for="tableNote">Nota de mesa</label>
+          <textarea id="tableNote" placeholder="Terraza, alergias, etc."></textarea>
+          <button id="saveDetailsBtn" class="secondary">Guardar datos de mesa</button>
+        </section>
+
+        <section id="menuPanel" class="panel">
+          <h2>2. Carta</h2>
+          <p class="muted">Cambia los productos y precios en el array MENU del código.</p>
+          <div id="categories" class="tabs"></div>
+          <div id="menu" class="menu"></div>
+        </section>
+      </div>
+
+      <div>
+        <section class="panel">
+          <h2>3. Comanda por persona</h2>
+          <div class="row">
+            <button id="addPersonBtn" class="secondary">＋ Añadir persona</button>
+            <button id="saveOrderBtn" class="primary">Guardar comanda</button>
+          </div>
+          <div id="peopleOrders"></div>
+          <div class="total">
+            <span>Total</span><span id="total">0,00 €</span>
+          </div>
+          <hr>
+          <h3>Registrar pago</h3>
+          <div class="row">
+            <div>
+              <label for="paymentMethod">Método</label>
+              <select id="paymentMethod">
+                <option value="efectivo">Efectivo</option>
+                <option value="tarjeta">Tarjeta</option>
+                <option value="mixto">Mixto</option>
+              </select>
+            </div>
+            <div>
+              <label for="paymentAmount">Importe recibido (€)</label>
+              <input id="paymentAmount" type="number" min="0" step="0.01">
+            </div>
+          </div>
+          <button id="payBtn" class="primary" style="width:100%;margin-top:10px">Registrar pago y liberar mesa</button>
+          <p id="paymentInfo" class="muted"></p>
+          <hr>
+          <div class="actions">
+            <button id="printKitchenBtn" class="secondary">🖨️ Imprimir comanda de cocina</button>
+            <button id="printBillBtn" class="secondary">🧾 Imprimir cuenta</button>
+            <button id="clearTableBtn" class="danger">Vaciar mesa sin cobrar</button>
+          </div>
+        </section>
+      </div>
+    </div>
+  </section>
+
+  <section id="kitchenView" class="hidden">
+    <section class="panel">
+      <h2>👨‍🍳 Panel de cocina</h2>
+      <p class="muted">Los pedidos se actualizan en directo.</p>
+      <div class="row">
+        <label style="display:flex;gap:8px;align-items:center;font-weight:500">
+          <input id="showServed" type="checkbox" style="width:auto">
+          Mostrar preparados y servidos
+        </label>
+        <button id="printAllKitchenBtn" class="secondary">Imprimir pendientes</button>
+      </div>
+      <div id="kitchenOrders"></div>
+    </section>
+  </section>
+</main>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+import {
+  getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut
+} from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
+import {
+  getFirestore, collection, doc, onSnapshot, setDoc,
+  deleteDoc, serverTimestamp
+} from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+
+/* PEGA AQUÍ LOS DATOS DE TU PROYECTO FIREBASE */
+const firebaseConfig = {
+  apiKey: "PEGA_AQUI_apiKey",
+  authDomain: "PEGA_AQUI.firebaseapp.com",
+  projectId: "PEGA_AQUI_projectId",
+  storageBucket: "PEGA_AQUI.appspot.com",
+  messagingSenderId: "PEGA_AQUI_messagingSenderId",
+  appId: "PEGA_AQUI_appId"
+};
+
+/* SUSTITUYE ESTA CARTA DE EJEMPLO POR LA DE TU BAR */
+const MENU = [
+  {id:"agua",name:"Agua",price:2,category:"Bebidas",station:"bar"},
+  {id:"refresco",name:"Refresco",price:2.5,category:"Bebidas",station:"bar"},
+  {id:"cerveza",name:"Cerveza",price:3,category:"Bebidas",station:"bar"},
+  {id:"cafe",name:"Café",price:1.5,category:"Bebidas",station:"bar"},
+  {id:"vino",name:"Vino",price:3.5,category:"Bebidas",station:"bar"},
+  {id:"patatas",name:"Patatas fritas",price:4,category:"Comida",station:"cocina"},
+  {id:"hamburguesa",name:"Hamburguesa",price:10,category:"Comida",station:"cocina"},
+  {id:"pizza",name:"Pizza",price:11,category:"Comida",station:"cocina"},
+  {id:"ensalada",name:"Ensalada",price:8,category:"Comida",station:"cocina"},
+  {id:"bocadillo",name:"Bocadillo",price:7,category:"Comida",station:"cocina"},
+  {id:"tarta",name:"Tarta",price:4,category:"Postres",station:"cocina"},
+  {id:"helado",name:"Helado",price:3.5,category:"Postres",station:"cocina"}
+];
+
+const TABLE_COUNT = 12;
+const money = n => Number(n||0).toLocaleString("es-ES",{style:"currency",currency:"EUR"});
+const $ = id => document.getElementById(id);
+const escapeHTML = s => String(s??"").replace(/[&<>"']/g,c=>({
+  "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+}[c]));
+
+let app,auth,db,user=null,unsubscribe=null;
+let orders={},selectedTable=1,category="Todos";
+
+const configReady = !Object.values(firebaseConfig).some(v=>String(v).startsWith("PEGA_AQUI"));
+
+if(configReady){
+  app=initializeApp(firebaseConfig);
+  auth=getAuth(app);
+  db=getFirestore(app);
+}else{
+  $("connection").textContent="Falta configurar Firebase";
+  $("connection").className="status bad";
+  $("loginError").textContent="Pega primero la configuración de Firebase en el código.";
+}
+
+$("loginBtn").addEventListener("click",async()=>{
+  if(!configReady)return;
+  $("loginError").textContent="";
+  try{
+    await signInWithEmailAndPassword(auth,$("email").value.trim(),$("password").value);
+  }catch(e){
+    $("loginError").textContent="No se pudo iniciar sesión. Comprueba la cuenta y la configuración de Firebase.";
+  }
+});
+
+$("logoutBtn").addEventListener("click",()=>signOut(auth));
+
+if(configReady) onAuthStateChanged(auth,u=>{
+  user=u;
+  $("loginPanel").classList.toggle("hidden",!!u);
+  $("app").classList.toggle("hidden",!u);
+  $("logoutBtn").classList.toggle("hidden",!u);
+
+  if(unsubscribe){unsubscribe();unsubscribe=null;}
+  if(!u)return;
+
+  $("connection").textContent="Conectando…";
+  unsubscribe=onSnapshot(collection(db,"tables"),snap=>{
+    orders={};
+    snap.forEach(d=>orders[Number(d.id)]=d.data());
+    $("connection").textContent="En directo · conectado";
+    $("connection").className="status good";
+    renderAll();
+  },e=>{
+    $("connection").textContent="Error de conexión";
+    $("connection").className="status bad";
+    console.error(e);
+  });
+});
+
+function blankOrder(){
+  return {table:selectedTable,people:2,waiter:"",note:"",items:[]};
+}
+function current(){return orders[selectedTable]||blankOrder();}
+function newId(){return crypto.randomUUID?crypto.randomUUID():String(Date.now())+Math.random();}
+function totalOf(o){return (o.items||[]).reduce((s,i)=>s+(Number(i.price)||0)*(Number(i.qty)||0),0);}
+
+async function saveTable(table,data){
+  if(!user)throw new Error("Inicia sesión primero");
+  await setDoc(doc(db,"tables",String(table)),{
+    ...data,table,updatedAt:serverTimestamp(),updatedBy:user.email||user.uid
+  });
+}
+function renderAll(){
+  renderTables();renderDetails();renderCategories();renderMenu();renderOrder();renderKitchen();
+}
+function renderTables(){
+  $("tables").innerHTML=Array.from({length:TABLE_COUNT},(_,i)=>{
+    const n=i+1,o=orders[n],occupied=!!o?.items?.length;
+    return `<button class="table-btn ${selectedTable===n?"active":""} ${occupied?"occupied":""}" data-table="${n}">
+      Mesa ${n}<small>${occupied?money(totalOf(o)):"Libre"}</small></button>`;
+  }).join("");
+  $("tables").querySelectorAll("[data-table]").forEach(b=>b.addEventListener("click",()=>{
+    selectedTable=Number(b.dataset.table);renderAll();
+  }));
+}
+function renderDetails(){
+  const o=current();
+  $("tableTitle").textContent="Mesa "+selectedTable;
+  $("people").value=o.people||1;
+  $("waiter").value=o.waiter||"";
+  $("tableNote").value=o.note||"";
+  $("paymentAmount").value=totalOf(o).toFixed(2);
+}
+function renderCategories(){
+  const cats=["Todos",...new Set(MENU.map(p=>p.category))];
+  $("categories").innerHTML=cats.map(c=>
+    `<button class="secondary ${category===c?"active":""}" data-cat="${escapeHTML(c)}">${escapeHTML(c)}</button>`
+  ).join("");
+  $("categories").querySelectorAll("[data-cat]").forEach(b=>b.addEventListener("click",()=>{
+    category=b.dataset.cat;renderCategories();renderMenu();
+  }));
+}
+function renderMenu(){
+  const items=MENU.filter(p=>category==="Todos"||p.category===category);
+  $("menu").innerHTML=items.map(p=>
+    `<button class="product" data-product="${p.id}">${escapeHTML(p.name)}<span>${money(p.price)} · Añadir +</span></button>`
+  ).join("");
+  $("menu").querySelectorAll("[data-product]").forEach(b=>b.addEventListener("click",()=>addProduct(b.dataset.product)));
+}
+async function addProduct(productId){
+  const p=MENU.find(x=>x.id===productId);if(!p)return;
+  const person=prompt("¿Para qué persona es? Escribe un nombre o número:","Persona 1");
+  if(person===null)return;
+  const note=prompt("Nota para este producto (opcional):","")??"";
+  const o=structuredClone(current());
+  o.people=Math.max(1,Number($("people").value)||1);
+  o.waiter=$("waiter").value.trim();o.note=$("tableNote").value.trim();
+  const who=person.trim()||"Sin asignar";
+  const existing=o.items.find(i=>i.productId===p.id&&i.person===who&&i.note===note.trim()&&i.status!=="servido");
+  if(existing)existing.qty++;
+  else o.items.push({
+    id:newId(),productId:p.id,name:p.name,price:p.price,category:p.category,
+    station:p.station,person:who,note:note.trim(),qty:1,status:"pendiente",createdAt:Date.now()
+  });
+  try{await saveTable(selectedTable,o);}
+  catch(e){alert("No se pudo guardar. Comprueba la conexión y las reglas de Firestore.");}
+}
+$("saveDetailsBtn").addEventListener("click",async()=>{
+  const o=structuredClone(current());
+  o.people=Math.max(1,Number($("people").value)||1);
+  o.waiter=$("waiter").value.trim();o.note=$("tableNote").value.trim();
+  try{await saveTable(selectedTable,o);alert("Datos de mesa guardados.");}
+  catch(e){alert("No se pudo guardar. Revisa la conexión.");}
+});
+$("saveOrderBtn").addEventListener("click",async()=>{
+  const o=structuredClone(current());
+  o.people=Math.max(1,Number($("people").value)||1);
+  o.waiter=$("waiter").value.trim();o.note=$("tableNote").value.trim();
+  try{await saveTable(selectedTable,o);alert("Comanda guardada y compartida.");}
+  catch(e){alert("No se pudo guardar. Revisa la conexión.");}
+});
+$("addPersonBtn").addEventListener("click",async()=>{
+  const o=structuredClone(current());
+  o.people=Math.max(1,Number(o.people||1)+1);
+  $("people").value=o.people;
+  try{await saveTable(selectedTable,o);}catch(e){alert("No se pudo guardar.");}
+});
+
+async function mutateItem(table,itemId,fn){
+  const o=structuredClone(orders[table]||blankOrder());
+  const item=o.items.find(x=>x.id===itemId);if(!item)return;
+  fn(item,o);
+  try{await saveTable(table,o);}catch(e){alert("No se pudo actualizar el producto.");}
+}
+function renderOrder(){
+  const o=current();
+  if(!o.items?.length){
+    $("peopleOrders").innerHTML='<p class="muted">No hay productos en esta mesa.</p>';
+    $("total").textContent=money(0);$("paymentInfo").textContent="";return;
+  }
+  const people=[...new Set(o.items.map(i=>i.person||"Sin asignar"))];
+  $("peopleOrders").innerHTML=people.map(person=>{
+    const items=o.items.filter(i=>(i.person||"Sin asignar")===person);
+    return `<div class="person-block">
+      <div class="person-head"><strong>${escapeHTML(person)}</strong><span class="pill">${money(items.reduce((s,i)=>s+i.price*i.qty,0))}</span></div>
+      ${items.map(i=>`<div class="order-item">
+        <div class="itemline"><strong>${escapeHTML(i.name)} × ${i.qty}</strong><strong>${money(i.price*i.qty)}</strong></div>
+        <div class="muted">${escapeHTML(i.note||"Sin nota")} · ${escapeHTML(i.status||"pendiente")}</div>
+        <div class="itemtools">
+          <button class="secondary small" data-minus="${i.id}">−</button>
+          <button class="secondary small" data-plus="${i.id}">+</button>
+          <select data-status="${i.id}" aria-label="Estado">
+            <option value="pendiente" ${i.status==="pendiente"?"selected":""}>Pendiente</option>
+            <option value="preparando" ${i.status==="preparando"?"selected":""}>Preparando</option>
+            <option value="listo" ${i.status==="listo"?"selected":""}>Listo</option>
+            <option value="servido" ${i.status==="servido"?"selected":""}>Servido</option>
+          </select>
+          <button class="danger small" data-remove="${i.id}">Eliminar</button>
+        </div>
+      </div>`).join("")}
+    </div>`;
+  }).join("");
+
+  $("peopleOrders").querySelectorAll("[data-minus]").forEach(b=>b.addEventListener("click",()=>mutateItem(selectedTable,b.dataset.minus,(i,order)=>{
+    i.qty--;if(i.qty<=0)order.items=order.items.filter(x=>x.id!==i.id);
+  })));
+  $("peopleOrders").querySelectorAll("[data-plus]").forEach(b=>b.addEventListener("click",()=>mutateItem(selectedTable,b.dataset.plus,i=>i.qty++)));
+  $("peopleOrders").querySelectorAll("[data-remove]").forEach(b=>b.addEventListener("click",()=>{
+    if(confirm("¿Eliminar este producto?"))mutateItem(selectedTable,b.dataset.remove,(i,order)=>order.items=order.items.filter(x=>x.id!==i.id));
+  }));
+  $("peopleOrders").querySelectorAll("[data-status]").forEach(s=>s.addEventListener("change",()=>mutateItem(selectedTable,s.dataset.status,i=>i.status=s.value)));
+  $("total").textContent=money(totalOf(o));
+  $("paymentInfo").textContent="Pendiente de cobro: "+money(totalOf(o));
+}
+function allItems(){
+  return Object.entries(orders).flatMap(([table,o])=>(o.items||[]).map(i=>({...i,table:Number(table)})));
+}
+function renderKitchen(){
+  const show=$("showServed").checked;
+  const items=allItems().filter(i=>show||!["listo","servido"].includes(i.status));
+  if(!items.length){
+    $("kitchenOrders").innerHTML='<p class="muted">No hay pedidos pendientes de preparar.</p>';return;
+  }
+  const grouped={};
+  for(const i of items)(grouped[i.table] ||= []).push(i);
+  $("kitchenOrders").innerHTML=Object.entries(grouped).sort((a,b)=>Number(a[0])-Number(b[0])).map(([table,its])=>`
+    <div class="kitchen-card ${its.every(i=>["listo","servido"].includes(i.status))?"done":""}">
+      <h3>Mesa ${table}</h3>
+      <p class="muted">Camarero: ${escapeHTML(orders[table]?.waiter||"—")}</p>
+      ${its.map(i=>`<div class="order-item">
+        <div class="itemline"><strong>${escapeHTML(i.name)} × ${i.qty}</strong><span class="pill">${escapeHTML(i.status||"pendiente")}</span></div>
+        <div class="muted">${escapeHTML(i.person||"")}${i.note?" · "+escapeHTML(i.note):""}</div>
+        ${i.status!=="servido"?`<div class="itemtools"><button class="primary small" data-kstatus="${i.id}" data-table="${table}" data-next="${i.status==="pendiente"?"preparando":i.status==="preparando"?"listo":"servido"}">${i.status==="pendiente"?"Empezar":i.status==="preparando"?"Marcar listo":"Marcar servido"}</button></div>`:""}
+      </div>`).join("")}
+    </div>`).join("");
+  $("kitchenOrders").querySelectorAll("[data-kstatus]").forEach(b=>b.addEventListener("click",async()=>{
+    await mutateItem(Number(b.dataset.table),b.dataset.kstatus,(i)=>i.status=b.dataset.next);
+  }));
+}
+$("showServed").addEventListener("change",renderKitchen);
+document.querySelectorAll("[data-view]").forEach(b=>b.addEventListener("click",()=>{
+  const kitchen=b.dataset.view==="kitchen";
+  document.querySelectorAll("[data-view]").forEach(x=>x.classList.toggle("active",x===b));
+  $("serviceView").classList.toggle("hidden",kitchen);
+  $("kitchenView").classList.toggle("hidden",!kitchen);
+  renderKitchen();
+}));
+
+$("payBtn").addEventListener("click",async()=>{
+  const o=structuredClone(current());
+  if(!o.items?.length){alert("La mesa no tiene productos.");return;}
+  const total=totalOf(o),amount=Number($("paymentAmount").value);
+  if(!Number.isFinite(amount)||amount<total){
+    alert("El importe debe ser igual o superior al total: "+money(total));return;
+  }
+  const method=$("paymentMethod").value;
+  if(!confirm(`Registrar ${money(amount)} como ${method} y liberar la mesa ${selectedTable}?`))return;
+  try{
+    await setDoc(doc(db,"payments",newId()),{
+      table:selectedTable,total,amount,change:amount-total,method,
+      waiter:o.waiter||"",people:o.people||1,items:o.items,
+      paidAt:serverTimestamp(),paidBy:user.email||user.uid
+    });
+    await deleteDoc(doc(db,"tables",String(selectedTable)));
+    alert("Pago registrado. Cambio: "+money(amount-total));
+  }catch(e){alert("No se pudo registrar el pago. Comprueba la conexión.");console.error(e);}
+});
+$("clearTableBtn").addEventListener("click",async()=>{
+  if(!confirm(`¿Vaciar mesa ${selectedTable} sin registrar el pago?`))return;
+  try{await deleteDoc(doc(db,"tables",String(selectedTable)));}
+  catch(e){alert("No se pudo vaciar la mesa.");}
+});
+
+function printDoc(title,body){
+  const w=window.open("","_blank");
+  if(!w){alert("Permite las ventanas emergentes para imprimir.");return;}
+  w.document.write(`<!doctype html><html lang="es"><head><meta charset="utf-8"><title>${escapeHTML(title)}</title><style>body{font:15px Arial;padding:20px}li{margin:10px 0}hr{margin:15px 0}</style></head><body><h2>${escapeHTML(title)}</h2>${body}<script>window.onload=()=>window.print();<\/script></body></html>`);
+  w.document.close();
+}
+function kitchenPrintBody(items){
+  const grouped={};items.forEach(i=>(grouped[i.table] ||= []).push(i));
+  return Object.entries(grouped).map(([t,its)=>`<h3>Mesa ${t}</h3><ul>${its.map(i=>`<li><b>${escapeHTML(i.name)} × ${i.qty}</b><br>${escapeHTML(i.person||"")}${i.note?" — "+escapeHTML(i.note):""}</li>`).join("")}</ul><hr>`).join("");
+}
+$("printKitchenBtn").addEventListener("click",()=>{
+  const items=(current().items||[]).filter(i=>!["listo","servido"].includes(i.status)).map(i=>({...i,table:selectedTable}));
+  if(!items.length){alert("No hay productos pendientes en esta mesa.");return;}
+  printDoc("Comanda de cocina · Mesa "+selectedTable,`<p>Camarero: ${escapeHTML(current().waiter||"—")}</p>${kitchenPrintBody(items)}`);
+});
+$("printAllKitchenBtn").addEventListener("click",()=>{
+  const items=allItems().filter(i=>!["listo","servido"].includes(i.status));
+  if(!items.length){alert("No hay productos pendientes.");return;}
+  printDoc("Comandas pendientes de cocina",kitchenPrintBody(items));
+});
+$("printBillBtn").addEventListener("click",()=>{
+  const o=current();
+  if(!o.items?.length){alert("No hay productos en esta mesa.");return;}
+  const people=[...new Set(o.items.map(i=>i.person||"Sin asignar"))];
+  const body=`<p>Mesa ${selectedTable} · ${o.people||1} personas<br>Camarero: ${escapeHTML(o.waiter||"—")}</p>`+
+    people.map(p=>`<h3>${escapeHTML(p)}</h3><ul>${o.items.filter(i=>(i.person||"Sin asignar")===p).map(i=>`<li>${escapeHTML(i.name)} × ${i.qty} — ${money(i.price*i.qty)}${i.note?"<br>"+escapeHTML(i.note):""}</li>`).join("")}</ul>`).join("")+
+    `<hr><h2>Total: ${money(totalOf(o))}</h2>`;
+  printDoc("Cuenta · Mesa "+selectedTable,body);
+});
+</script>
+</body>
+</html>
